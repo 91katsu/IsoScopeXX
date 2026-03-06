@@ -2,7 +2,7 @@ from __future__ import print_function
 import argparse
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import os, shutil, time, sys
+import os, shutil, time, sys, subprocess
 from datetime import datetime
 from tqdm import tqdm
 from dotenv import load_dotenv
@@ -21,7 +21,7 @@ def prepare_log(args):
     """
     finalize arguments, creat a folder for logging, save argument in json
     """
-    args.not_tracking_hparams = []  # 'mode', 'port', 'epoch_load', 'legacy', 'threads', 'test_batch_size']
+    args.not_tracking_hparams = ['mode', 'port', 'host', 'preload', 'test_batch_size', 'not_tracking_hparams']
     os.makedirs(os.environ.get('LOGS') + args.dataset + '/', exist_ok=True)
     os.makedirs(os.environ.get('LOGS') + args.dataset + '/' + args.prj + '/', exist_ok=True)
     save_json(args, os.environ.get('LOGS') + args.dataset + '/' + args.prj + '/' + '0.json')
@@ -67,6 +67,13 @@ if __name__ == '__main__':
 
     # Finalize Arguments and create files for logging
     args.bash = ' '.join(sys.argv)
+    try:
+        args.git_hash = subprocess.check_output(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            stderr=subprocess.DEVNULL
+        ).decode('ascii').strip()
+    except Exception:
+        args.git_hash = 'unknown'
     args = prepare_log(args)
     print(args)
 
@@ -113,7 +120,14 @@ if __name__ == '__main__':
     mlf_logger = MLFlowLogger(
         experiment_name=args.dataset,
         run_name=f"{args.prj}_{run_timestamp}",  # Include timestamp in run name
-        tracking_uri=f"file:{os.path.join(log_base, 'MLFlowLogger')}"
+        tracking_uri=f"file:{os.path.join(log_base, 'MLFlowLogger')}",
+        tags={
+            'env': args.env,
+            'yaml_config': args.yaml,
+            'git_hash': args.git_hash,
+            'models': args.models,
+            'prj': args.prj,
+        }
     )
 
     # Checkpoints - linked to same timestamp
