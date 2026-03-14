@@ -119,6 +119,7 @@ class BaseModel(pl.LightningModule):
         self.buffer = {}
         self._epoch_time_sum = 0.0
         self._epoch_count = 0
+        os.makedirs('out', exist_ok=True)
 
     def _init_loss_functions(self) -> None:
         """Initialize loss functions used in the model.
@@ -289,7 +290,6 @@ class BaseModel(pl.LightningModule):
 
         self.reset_metrics()
 
-        os.makedirs('out', exist_ok=True)
         if self.epoch % 20 == 0 and hasattr(self, 'train_Xup') and hasattr(self, 'train_XupX') and self.trainer.is_global_zero:
             # (B, C, X, Y, Z) - Use stored training data (not validation data)
             print_ori = np.concatenate([self.train_Xup[:, c, ::].squeeze().detach().cpu().numpy() for c in range(self.train_XupX.shape[1])], 1)
