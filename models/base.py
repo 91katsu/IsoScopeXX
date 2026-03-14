@@ -131,7 +131,7 @@ class BaseModel(pl.LightningModule):
             self.criterionGAN = GANLoss(self.hparams.gan_mode)
 
     def _get_mlflow_client_and_run_id(self):
-        """Gets the MLflow client and run ID for artifact/metric logging.
+        """Gets the MLflow client and run ID for metric logging.
 
         Only returns valid references on rank 0 to avoid duplicate logging in DDP.
 
@@ -289,6 +289,7 @@ class BaseModel(pl.LightningModule):
 
         self.reset_metrics()
 
+        os.makedirs('out', exist_ok=True)
         if self.epoch % 20 == 0 and hasattr(self, 'train_Xup') and hasattr(self, 'train_XupX') and self.trainer.is_global_zero:
             # (B, C, X, Y, Z) - Use stored training data (not validation data)
             print_ori = np.concatenate([self.train_Xup[:, c, ::].squeeze().detach().cpu().numpy() for c in range(self.train_XupX.shape[1])], 1)

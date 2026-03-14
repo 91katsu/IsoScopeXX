@@ -73,7 +73,7 @@ if __name__ == '__main__':
             return subprocess.check_output(
                 ["git", "rev-parse", "--short", "HEAD"]
             ).decode().strip()
-        except:
+        except Exception:
             return "unknown"
     args.git_hash = get_git_hash()
     args = prepare_log(args)
