@@ -1,6 +1,6 @@
 train:
   ldmyaml: vqgan
-  prj: null
+  prj: default/
   rotate: true
   resize: 0
   nm: "00"
