@@ -19,23 +19,14 @@ This framework addresses critical challenges in expansion microscopy (ExM):
 
 ## Logging & Experiment Tracking
 
-This project uses both **TensorBoard** and **MLflow** for experiment tracking.
+This project uses **TensorBoard** and **MLflow** for experiment tracking. Each training run is identified by a shared timestamp that links TensorBoard logs, MLflow runs, and checkpoints together.
 
-### Log Structure
-```
-${LOGS}/${DATASET}/${PROJECT}/
-├── logs/
-│   ├── TensorBoardLogger/{timestamp}/   # TensorBoard logs
-│   └── MLFlowLogger/                     # MLflow logs
-├── checkpoints/{timestamp}/              # Model weights (linked to logs)
-└── 0.json                                # Hyperparameters
-```
-
-### Viewing Logs
+### Quick Start
 
 **TensorBoard:**
 ```bash
 tensorboard --logdir /path/to/logs/TensorBoardLogger
+# Open: http://localhost:6006
 ```
 
 **MLflow:**
@@ -44,10 +35,44 @@ mlflow server --backend-store-uri /path/to/logs/MLFlowLogger --port 5002 --host 
 # Open: http://localhost:5002
 ```
 
-### Timestamp Versioning
-- Each training run creates a unique timestamp (e.g., `20260204_160003`)
-- TensorBoard, MLflow run_name, and checkpoints all share the same timestamp
-- This links everything together and prevents overwrites across servers
+### Directory Structure
+
+Each training run produces the following output:
+
+```
+${LOGS}/${DATASET}/${PROJECT}/
+├── logs/
+│   ├── TensorBoardLogger/{timestamp}/    # TensorBoard event files
+│   └── MLFlowLogger/                      # MLflow experiments & runs
+├── checkpoints/{timestamp}/
+│   ├── config.json                        # Training hyperparameters
+│   ├── {model_name}.py                    # Model source snapshot
+│   └── *.pth                              # Model weights
+```
+
+- `{timestamp}` format: `YYYYMMDD_HHMMSS` (e.g., `20260314_160003`)
+- The same timestamp is shared across TensorBoard, MLflow `run_name`, and checkpoints
+
+### MLflow Artifacts
+
+Each MLflow run logs the following artifacts (viewable directly in the MLflow UI):
+
+| Artifact Path | Description |
+|---|---|
+| `config/config.json` | Full training configuration |
+| `images/train_epoch_*.gif` | Animated Z-slice training previews |
+| `images/val_epoch_*.gif` | Animated Z-slice validation previews |
+
+### Tracking URI
+
+The MLflow tracking URI is resolved in the following priority:
+
+1. **CLI flag** `--tracking_uri` (highest priority)
+2. **Environment config** `TRACKING_URI` field in `env/env`
+3. **File-based fallback** `file:{log_base}/MLFlowLogger`
+
+When an HTTP server is configured but unreachable, training automatically
+falls back to file-based logging without interruption.
 
 ## Configuration
 
