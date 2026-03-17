@@ -17,16 +17,14 @@ from utils.get_args import get_args
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 
-def prepare_log(args):
-    """
-    finalize arguments, create a folder for logging, save argument in json
-    """
+def prepare_log(args, checkpoint_dir):
+    """Finalize arguments and save config.json to the checkpoint directory."""
     args.not_tracking_hparams = ['mode', 'port', 'host', 'preload', 'test_batch_size']
-    os.makedirs(os.environ.get('LOGS') + args.dataset + '/', exist_ok=True)
-    os.makedirs(os.environ.get('LOGS') + args.dataset + '/' + args.prj + '/', exist_ok=True)
-    save_json(args, os.environ.get('LOGS') + args.dataset + '/' + args.prj + '/' + '0.json')
+    os.makedirs(os.path.join(os.environ.get('LOGS'), args.dataset), exist_ok=True)
+    os.makedirs(os.path.join(os.environ.get('LOGS'), args.dataset, args.prj), exist_ok=True)
+    save_json(args, os.path.join(checkpoint_dir, 'config.json'))
     shutil.copy('models/' + args.models + '.py',
-                os.environ.get('LOGS') + args.dataset + '/' + args.prj + '/' + args.models + '.py')
+                os.path.join(checkpoint_dir, args.models + '.py'))
     return args
 
 
@@ -76,7 +74,13 @@ if __name__ == '__main__':
         except Exception:
             return "unknown"
     args.git_hash = get_git_hash()
-    args = prepare_log(args)
+
+    log_base = os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'logs')
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    checkpoints = os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'checkpoints', run_timestamp)
+    os.makedirs(checkpoints, exist_ok=True)
+
+    args = prepare_log(args, checkpoints)
     print(args)
 
     # Load Dataset and DataLoader
@@ -128,9 +132,6 @@ if __name__ == '__main__':
             'prj': args.prj,
         }
     )
-
-    checkpoints = os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'checkpoints', run_timestamp)
-    os.makedirs(checkpoints, exist_ok=True)
 
     net = GAN(hparams=args, train_loader=train_loader, eval_loader=eval_loader, checkpoints=checkpoints)
 
