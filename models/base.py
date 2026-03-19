@@ -153,13 +153,15 @@ class BaseModel(pl.LightningModule):
         return None, None
 
     def on_fit_start(self):
-        """Log config.json to MLflow artifacts at the start of training."""
+        """Log config.json and YAML config to MLflow artifacts at the start of training."""
         client, run_id = self._get_mlflow_client_and_run_id()
         if client is None:
             return
         config_path = os.path.join(self.dir_checkpoints, 'config.json')
-        if os.path.exists(config_path):
-            client.log_artifact(run_id, config_path, artifact_path="config")
+        client.log_artifact(run_id, config_path, artifact_path="config")
+        yaml_path = os.path.join(self.dir_checkpoints, self.hparams.yaml + '.yaml')
+        if os.path.exists(yaml_path):
+            client.log_artifact(run_id, yaml_path, artifact_path="config")
 
     @staticmethod
     def _save_3d_as_gif(arr, path, duration=100):
@@ -266,12 +268,12 @@ class BaseModel(pl.LightningModule):
         l1 = self.criterionL2(a, b)
         return l1
 
-    def save_auc_csv(self, auc, epoch):
-        auc = auc.cpu().numpy()
-        auc = np.insert(auc, 0, epoch)
-        with open(os.path.join(os.environ.get('LOGS'), self.hparams.prj, 'auc.csv'), 'a') as f:
-            writer = csv.writer(f)
-            writer.writerow(auc)
+    # def save_auc_csv(self, auc, epoch):
+    #     auc = auc.cpu().numpy()
+    #     auc = np.insert(auc, 0, epoch)
+    #     with open(os.path.join(os.environ.get('LOGS'), self.hparams.prj, 'auc.csv'), 'a') as f:
+    #         writer = csv.writer(f)
+    #         writer.writerow(auc)
 
     def training_step(self, batch, batch_idx, optimizer_idx):  ## THIS IS REQUIRED
         if optimizer_idx == 1:
@@ -319,13 +321,13 @@ class BaseModel(pl.LightningModule):
         # checkpoint
         if self.epoch % self.hparams.epoch_save == 0:
             for name in self.netg_names.keys():
-                path_g = self.dir_checkpoints + ('/' + self.netg_names[name] + '_model_epoch_{}.pth').format(self.epoch)
+                path_g = os.path.join(self.dir_checkpoints, '{}_model_epoch_{}.pth'.format(self.netg_names[name], self.epoch))
                 torch.save(getattr(self, name), path_g)
                 print("Checkpoint saved to {}".format(path_g))
 
             if self.hparams.save_d:
                 for name in self.netd_names.keys():
-                    path_d = self.dir_checkpoints + ('/' + self.netd_names[name] + '_model_epoch_{}.pth').format(self.epoch)
+                    path_d = os.path.join(self.dir_checkpoints, '{}_model_epoch_{}.pth'.format(self.netd_names[name], self.epoch))
                     torch.save(getattr(self, name), path_d)
                     print("Checkpoint saved to {}".format(path_d))
 
@@ -334,7 +336,7 @@ class BaseModel(pl.LightningModule):
 
         # log saved images
         for k in self.log_image.keys():
-            self.save_tensor_to_png(self.log_image[k], self.dir_checkpoints + os.path.join(str(self.epoch).zfill(4) + k + '.png'))
+            self.save_tensor_to_png(self.log_image[k], os.path.join(self.dir_checkpoints, str(self.epoch).zfill(4) + k + '.png'))
 
         self.reset_metrics()
 
@@ -343,7 +345,7 @@ class BaseModel(pl.LightningModule):
             print_ori = np.concatenate([self.train_Xup[:, c, ::].squeeze().detach().cpu().numpy() for c in range(self.train_XupX.shape[1])], 1)
             print_enc = np.concatenate([self.train_XupX[:, c, ::].squeeze().detach().cpu().numpy() for c in range(self.train_Xup.shape[1])], 1)
             concat_arr = np.concatenate([print_ori, print_enc], 2)
-            tiff.imwrite('out/epoch_{}.tif'.format(self.epoch), concat_arr)
+            tiff.imwrite('out/train_epoch_{}.tif'.format(self.epoch), concat_arr)
             self._log_gif_artifact(concat_arr, 'train')
 
         self.epoch += 1
