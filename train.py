@@ -19,10 +19,16 @@ os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 
 def prepare_log(args, checkpoint_dir):
-    """Finalize arguments and save config.json to the checkpoint directory."""
+    """Finalize arguments and save config + model source to the checkpoint directory.
+
+    Args:
+        args: Parsed argument namespace containing all training configuration.
+        checkpoint_dir: Path to the timestamped checkpoint directory.
+
+    Returns:
+        The args namespace with ``not_tracking_hparams`` populated.
+    """
     args.not_tracking_hparams = ['mode', 'port', 'host', 'preload', 'test_batch_size']
-    os.makedirs(os.path.join(os.environ.get('LOGS'), args.dataset), exist_ok=True)
-    os.makedirs(os.path.join(os.environ.get('LOGS'), args.dataset, args.prj), exist_ok=True)
     save_json(args, os.path.join(checkpoint_dir, 'config.json'))
     shutil.copy(os.path.join('models', args.models + '.py'),
                 os.path.join(checkpoint_dir, args.models + '.py'))
@@ -66,6 +72,10 @@ if __name__ == '__main__':
     else:
         load_dotenv('cfg/.t09')
 
+    # Validate required arguments
+    if args.prj is None:
+        raise ValueError("--prj must be specified (either via CLI or in YAML config)")
+
     # Finalize Arguments and create files for logging
     args.bash = ' '.join(sys.argv)
 
@@ -100,9 +110,9 @@ if __name__ == '__main__':
                            config=args, mode='test')#, index=None, filenames=True)
         eval_loader = DataLoader(dataset=eval_set, num_workers=1, batch_size=args.test_batch_size, shuffle=False,
                                  pin_memory=True)
-    except:
+    except (FileNotFoundError, ValueError) as e:
         eval_loader = None
-        print('No validation set')
+        print(f'No validation set: {e}')
 
     # preload
     if args.preload:

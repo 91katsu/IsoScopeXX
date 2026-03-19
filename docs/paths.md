@@ -29,8 +29,9 @@ $LOGS
     └── {prj}/
         ├── logs/
         │   ├── TensorBoardLogger/{run_timestamp}/
-        │   ├── mlflow.db
-        │   └── mlartifacts/
+        │   ├── mlflow.db               (server mode only)
+        │   ├── mlartifacts/            (server mode only)
+        │   └── MLFlowLogger/           (file-based fallback only)
         └── checkpoints/
             └── {run_timestamp}/
                 ├── config.json
@@ -41,3 +42,5 @@ $LOGS
 ```
 
 `{run_timestamp}` = `YYYYMMDD_HHMMSS`, shared across TensorBoard, MLflow, and checkpoints.
+
+**MLflow modes:** When an MLflow tracking server is running (see README), metadata is stored in `mlflow.db` (SQLite) and artifacts in `mlartifacts/`. When no server is available, MLflow falls back to file-based tracking under `MLFlowLogger/`.

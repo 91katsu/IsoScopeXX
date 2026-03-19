@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional, Union, Any
 
 import os
-import csv
 import time
 import torch
 import torch.nn as nn
@@ -175,6 +174,9 @@ class BaseModel(pl.LightningModule):
             path: Output file path for the GIF.
             duration: Duration per frame in milliseconds.
         """
+        if arr.ndim != 3:
+            print(f"WARNING: _save_3d_as_gif expected 3D array, got {arr.ndim}D — skipping")
+            return
         arr = arr.astype(np.float32)
         mn, mx = arr.min(), arr.max()
         if mx - mn > 1e-8:
@@ -192,14 +194,20 @@ class BaseModel(pl.LightningModule):
             )
 
     def _log_gif_artifact(self, arr, prefix):
-        """Create a GIF from a 3D array and log to MLflow artifacts."""
+        """Create a GIF from a 3D array and log to MLflow artifacts.
+
+        Args:
+            arr: 3D numpy array with shape (Z, H, W).
+            prefix: Filename prefix (e.g. 'train'), used as ``{prefix}_epoch_{N}.gif``.
+        """
         client, run_id = self._get_mlflow_client_and_run_id()
         if client is None:
             return
         gif_path = os.path.join(self.dir_checkpoints, f'{prefix}_epoch_{self.epoch}.gif')
         try:
             self._save_3d_as_gif(arr, gif_path)
-            client.log_artifact(run_id, gif_path, artifact_path="images")
+            if os.path.exists(gif_path):
+                client.log_artifact(run_id, gif_path, artifact_path="images")
         except (MlflowException, OSError) as e:
             print(f"WARNING: Failed to log {prefix} GIF artifact to MLflow: {e}")
         finally:

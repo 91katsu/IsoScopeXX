@@ -23,6 +23,7 @@ def tif_to_patches(npys, root='', **kwargs):
 
     Args:
         npys: list of 3D numpy arrays to be converted to patches
+        root: base directory prepended to destination paths (default: '')
         destination: list of output folder names, one per input array (e.g., ['maskpatch/', 'oripatch/'])
         dh: tuple (dz, dx, dy) - patch dimensions in z, x, y (e.g., (64, 256, 256))
         step: tuple (sz, sx, sy) - step size for sliding window in z, x, y (e.g., (64, 256, 256))

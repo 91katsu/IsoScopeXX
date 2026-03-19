@@ -86,12 +86,15 @@ Each run is tracked by **TensorBoard** and **MLflow** with a shared timestamp.
 # TensorBoard
 tensorboard --logdir /path/to/logs/TensorBoardLogger
 
-# MLflow
+# MLflow — set these for your environment (see cfg/env.json for values):
+LOGS=/media/aero/HDD01/CharlieChang/logs
+DATASET=filopodia_9_R
+PRJ=default
+
 mlflow server \
-  --backend-store-uri sqlite:////$LOGS/{dataset}/{prj}/logs/mlflow.db \
-  --artifacts-destination $LOGS/{dataset}/{prj}/logs/mlartifacts \
-  --host 0.0.0.0 --port 5002 \
-  --disable-security-middleware
+  --backend-store-uri sqlite:///${LOGS}/${DATASET}/${PRJ}/logs/mlflow.db \
+  --artifacts-destination ${LOGS}/${DATASET}/${PRJ}/logs/mlartifacts \
+  --host 0.0.0.0 --port 5002
 ```
 
 MLflow tracking URI priority: CLI `--tracking_uri` > `cfg/env.json` > file-based fallback.
